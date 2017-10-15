@@ -4,60 +4,67 @@
  * Set as child component in a container. Toggle state with `active` prop.
  * React transition group will handle the fade of the overlay.
  */
-
-import React, { Children } from 'react'
+import React, {Children} from 'react'
 import PropTypes from 'prop-types'
-import { CSSTransitionGroup } from 'react-transition-group'
-import styled, { keyframes } from 'styled-components'
+import {CSSTransitionGroup} from 'react-transition-group';
 
-const FirstChild = props => Children.toArray(props.children)[0] || null
+import styles from './Overlay.sass';
+
+const FirstChild = props => Children.toArray(props.children)[0] || null;
 
 class LoadingOverlayWrapper extends React.Component {
-  componentWillReceiveProps (nextProps) {
-    let s = nextProps.style
+
+  componentWillReceiveProps(nextProps) {
+    let s = nextProps.style;
     if (nextProps.active && (s.overflow || s.overflowY || s.overflowX)) {
       this.wrapper.scrollTop = 0
     }
   }
 
-  render () {
-    const {
-      active,
-      animate,
-      spinner
-    } = this.props
+  render() {
+    const {active, animate, spinner} = this.props;
 
-    let loadNode = active && <LoadingOverlay key='the_dimmer' {...this.props} />
-    if (animate || spinner) {
+    let loadNode = null;
+    if (active) {
+      loadNode = <LoadingOverlay key='the_dimmer' {...this.props} />;
+    }
+
+    if (animate) {
       loadNode = (
         <CSSTransitionGroup
-          transitionName='_loading-overlay-transition'
-          transitionAppear
+          transitionName={{
+            enter: styles.enter,
+            enterActive: styles.enterActive,
+            appear: styles.appear,
+            appearActive: styles.appearActive,
+            leave: styles.leave,
+            leaveActive: styles.leaveActive
+          }}
           transitionEnterTimeout={500}
           transitionLeaveTimeout={500}
           transitionAppearTimeout={500}
           component={FirstChild}
-          >
+        >
           {loadNode}
         </CSSTransitionGroup>
       )
     }
 
-    let styles = {
-      position: 'relative',
+    let wrapperStyle = {
       ...this.props.style
-    }
+    };
+
     if (active) {
-      if (styles.overflow) styles.overflow = 'hidden'
-      if (styles.overflowY) styles.overflowY = 'hidden'
-      if (styles.overflowX) styles.overflowX = 'hidden'
+      if (wrapperStyle.overflow) wrapperStyle.overflow = 'hidden';
+      if (wrapperStyle.overflowY) wrapperStyle.overflowY = 'hidden';
+      if (wrapperStyle.overflowX) wrapperStyle.overflowX = 'hidden';
     }
+
     return (
       <div
-        ref={n => { this.wrapper = n }}
-        className={this.props.className}
-        style={styles}
-        >
+        ref={n => { this.wrapper = n}}
+        className={styles.overlayWrapper}
+        style={wrapperStyle}>
         {loadNode}
         {this.props.children}
       </div>
@@ -74,142 +81,86 @@ LoadingOverlayWrapper.propTypes = {
   background: PropTypes.string,
   color: PropTypes.string,
   zIndex: PropTypes.number,
-  animate: PropTypes.bool
-}
+  animate: PropTypes.bool,
+  style: PropTypes.object
+};
 
 LoadingOverlayWrapper.defaultProps = {
   active: false,
-  className: '_loading-overlay',
+  className: '',
   background: 'rgba(0, 0, 0, 0.7)',
   spinnerSize: '50px',
   color: '#FFF',
   zIndex: 800,
   animate: false,
   style: {}
-}
+};
 
 class LoadingOverlay extends React.Component {
-  render () {
-    const Overlay = styled.div`
-      position: absolute;
-      height: 100%;
-      width: 100%;
-      top: 0px;
-      left: 0px;
-      background: ${this.props.background};
-      color: ${this.props.color};
-      transition: opacity ${this.props.speed}ms ease-out;
-      display: flex;
-      text-align: center;
-      font-size: 1.2em;
-      z-index: ${this.props.zIndex};
-      &._loading-overlay-transition-appear,
-      &._loading-overlay-transition-enter {
-        opacity: 0.01;
-      }
-      &._loading-overlay-transition-appear._loading-overlay-transition-appear-active,
-      &._loading-overlay-transition-enter._loading-overlay-transition-enter-active {
-        opacity: 1;
-        transition: opacity .5s ease-in;
-      }
-      &._loading-overlay-transition-leave {
-        opacity: 1;
-      }
-      &._loading-overlay-transition-leave._loading-overlay-transition-leave-active {
-        opacity: 0;
-        transition: opacity .5s ease-in;
-      }
-    `
+  render() {
 
-    const Spinner = styled.div`
-      position: relative;
-      margin: 0px auto 10px auto;
-      width: ${this.props.spinnerSize};
-      max-height: 100%;
-      &:before {
-        content: '';
-        display: block;
-        padding-top: 100%;
-      }
-    `
-
-    const Content = styled.div`
-      margin: auto;
-    `
-
-    const rotate360 = keyframes`
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    `
-
-    const spinnerDash = keyframes`
-      0% {
-        stroke-dasharray: 1,200;
-        stroke-dashoffset: 0;
-      }
-      50% {
-        stroke-dasharray: 89,200;
-        stroke-dashoffset: -35px;
-      }
-      100% {
-        stroke-dasharray: 89,200;
-        stroke-dashoffset: -124px;
-      }
-    `
-
-    const Svg = styled.svg`
-      animation: ${rotate360} 2s linear infinite;
-      height: 100%;
-      transform-origin: center center;
-      width: 100%;
-      position: absolute;
-      top: 0; bottom: 0; left: 0; right: 0;
-      margin: auto;
-    `
-
-    const Circle = styled.circle`
-      animation: ${spinnerDash} 1.5s ease-in-out infinite;
-      stroke-dasharray: 1,200;
-      stroke-dashoffset: 0;
-      stroke-linecap: round;
-      stroke: ${this.props.color};
-    `
-
-    let spinnerNode = null
+    let spinnerNode = null;
     if (this.props.spinner) {
       spinnerNode = (
-        <Spinner>
-          <Svg viewBox='25 25 50 50'>
-            <Circle cx='50' cy='50' r='20' fill='none' strokeWidth='2' strokeMiterlimit='10' />
-          </Svg>
-        </Spinner>
+        <div
+          className={styles.spinner}
+          style={{width: `${this.props.spinnerSize}`}}>
+          <svg viewBox='25 25 50 50' className={styles.svg}>
+            <circle cx='50' cy='50' r='20' fill='none' strokeWidth='2' strokeMiterlimit='10'
+              className={styles.circle} style={{stroke: `${this.props.color}`}}/>
+          </svg>
+        </div>
       )
     }
 
-    let textNode = null
-    if (this.props.text) textNode = <div>{this.props.text}</div>
+    let textNode = null;
+    if (this.props.text) {
+      textNode = <div>{this.props.text}</div>;
+    }
 
-    let contentNode = null
+    let contentNode = null;
     if (this.props.text || this.props.spinner) {
       contentNode = (
-        <Content>
+        <div className={styles.content}>
           {spinnerNode}
           {textNode}
-        </Content>
+        </div>
       )
     }
 
-    return <Overlay key='dimmer'>{contentNode}</Overlay>
+    const overlayStyle = {
+      background: `${this.props.background}`,
+      color: `${this.props.color}`,
+      transition: `opacity ${this.props.speed}ms ease-out`,
+      'zIndex': `${this.props.zIndex}`
+    };
+
+    return (
+      <div
+        className={styles.overlay}
+        style={overlayStyle}
+        key='dimmer'
+      >
+        {contentNode}
+      </div>
+    )
   }
 }
 
 LoadingOverlay.defaultProps = {
   text: null,
   spinner: false
-}
+};
+
+
+LoadingOverlay.propTypes = {
+  text: PropTypes.string,
+  spinner: PropTypes.bool,
+  background: PropTypes.string,
+  color: PropTypes.string,
+  speed: PropTypes.string,
+  zIndex: PropTypes.number,
+  spinnerSize: PropTypes.string
+};
 
 export default LoadingOverlayWrapper
